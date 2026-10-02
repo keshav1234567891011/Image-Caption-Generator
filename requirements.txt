@@ -2,3 +2,4 @@ streamlit==1.39.0
 Pillow
 numpy<2
 tensorflow==2.15.1
+Keras-Preprocessing==1.1.2
