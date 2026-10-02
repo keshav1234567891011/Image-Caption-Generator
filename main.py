@@ -11,7 +11,7 @@ from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.models import Model
 # Load the pre-trained model
 model_path = "best_model.h5"  # Replace with the actual path
-model = load_model(model_path)
+model = load_model(model_path, compile=False)
 
 # Load the tokenizer
 tokenizer_path = "tokenizer.pkl"  # Replace with the actual path
