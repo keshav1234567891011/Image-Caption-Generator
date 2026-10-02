@@ -12,8 +12,6 @@ required.
 
 [Open VisionScribe][(https://YOUR-APP-NAME.streamlit.app](https://image-caption-generator-mvzdrcuzwoepbfhnzmsa4b.streamlit.app/))
 
-Replace this placeholder with your Streamlit Community Cloud URL.
-
 ## Features
 
 - Upload JPG, JPEG, PNG, or WEBP images with an immediate preview.
