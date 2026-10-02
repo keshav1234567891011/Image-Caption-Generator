@@ -10,7 +10,7 @@ required.
 
 ## Live Demo
 
-[Open VisionScribe](https://YOUR-APP-NAME.streamlit.app)
+[Open VisionScribe][(https://YOUR-APP-NAME.streamlit.app](https://image-caption-generator-mvzdrcuzwoepbfhnzmsa4b.streamlit.app/))
 
 Replace this placeholder with your Streamlit Community Cloud URL.
 
