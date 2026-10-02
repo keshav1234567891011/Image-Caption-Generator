@@ -1,108 +1,108 @@
+"""Streamlit interface for VisionScribe."""
+
+from hashlib import sha256
+from io import BytesIO
+import logging
+
 import streamlit as st
-from PIL import Image
-import numpy as np
-import pickle
-import tensorflow
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.applications.vgg16 import preprocess_input
-from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.models import Model
-# Load the pre-trained model
-model_path = "best_model.h5"  # Replace with the actual path
-model = load_model(model_path, compile=False)
 
-# Load the tokenizer
-tokenizer_path = "tokenizer.pkl"  # Replace with the actual path
-with open(tokenizer_path, 'rb') as f:
-    tokenizer = pickle.load(f)
+from caption_generator import CaptionGenerationError, generate_caption
+from utils import open_uploaded_image
 
-# Set the maximum length for captions
-max_length = 35  # Replace with the actual max length
-
-# Function to generate captions
-def idx_to_word(integer, tokenizer):
-    for word, index in tokenizer.word_index.items():
-        if index == integer:
-            return word
-    return None
-
-def predict_caption(model, image, tokenizer, max_length):
-    # Add start tag for generation process
-    in_text = 'startseq'
-
-    # Iterate over the max length of sequence
-    for i in range(max_length):
-        # Encode input sequence
-        sequence = tokenizer.texts_to_sequences([in_text])[0]
-
-        # Pad the sequence
-        sequence = pad_sequences([sequence], max_length)
-
-        # Predict next word
-        yhat = model.predict([image, sequence], verbose=0)
-
-        # Get index with high probability
-        yhat = np.argmax(yhat)
-
-        # Convert index to word
-        word = idx_to_word(yhat, tokenizer)
-
-        # Stop if word not found
-        if word is None:
-            break
-
-        # Append word as input for generating the next word
-        in_text += " " + word
-
-        # Stop if we reach end tag
-        if word == 'endseq':
-            break
-
-    return in_text
-
-# Streamlit app
-vgg_model = VGG16()
-# restructure the model
-vgg_model = Model(inputs=vgg_model.inputs,
-                  outputs=vgg_model.layers[-2].output)
+LOGGER = logging.getLogger(__name__)
 
 
-# ...
+def clear_upload() -> None:
+    """Reset this session's upload and result while keeping shared models cached."""
+    st.session_state.upload_number += 1
+    st.session_state.pop("image_id", None)
+    st.session_state.pop("caption", None)
 
-def main():
-    st.title("Image Caption Generator")
-    uploaded_file = st.file_uploader("Choose an image...", type="jpg")
 
-    if uploaded_file is not None:
-        image = Image.open(uploaded_file)
-        # Display the uploaded image with reduced width
-        st.image(image, caption="Uploaded Image.", use_column_width=True)
-        st.markdown(
-            f'<style>img{{max-width: 300px; max-height: 300px;margin: auto;}}</style>',
-            unsafe_allow_html=True
+def main() -> None:
+    """Render the upload, generation, and result workflow."""
+    st.set_page_config(page_title="VisionScribe – AI Image Caption Generator",
+                       page_icon="✍️", layout="centered")
+    st.markdown(
+        """<style>
+        .block-container {max-width: 860px; padding-top: 2.5rem;}
+        h1 {letter-spacing: -0.04em;}
+        div[data-testid="stVerticalBlockBorderWrapper"] {border-radius: 16px;}
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
+    with st.sidebar:
+        st.header("About the Model")
+        st.markdown("**Image Encoder:** VGG16\n\n"
+                    "**Language Model:** LSTM\n\n"
+                    "**Dataset:** Flickr8k\n\n"
+                    "**Task:** Image Caption Generation")
+        st.divider()
+        st.markdown("**How it works**")
+        st.write("Image → VGG16 features → LSTM decoder → Caption")
+        st.caption("VGG16 extracts visual features. The LSTM uses them to "
+                   "predict a description one word at a time.")
+
+    st.title("VisionScribe")
+    st.subheader("AI-Powered Image Caption Generator")
+    st.write("Upload an image and let our deep learning model generate a "
+             "natural-language description.")
+
+    if "upload_number" not in st.session_state:
+        st.session_state.upload_number = 0
+
+    with st.container(border=True):
+        uploaded_file = st.file_uploader(
+            "Choose an image", type=["jpg", "jpeg", "png", "webp"],
+            key=f"image_upload_{st.session_state.upload_number}",
+            help="Supported formats: JPG, JPEG, PNG, and WEBP.",
+        )
+        image = None
+        if uploaded_file is not None:
+            image_bytes = uploaded_file.getvalue()
+            image_id = sha256(image_bytes).hexdigest()
+            if st.session_state.get("image_id") != image_id:
+                st.session_state.image_id = image_id
+                st.session_state.pop("caption", None)
+            try:
+                image = open_uploaded_image(BytesIO(image_bytes))
+            except (OSError, ValueError) as error:
+                st.error(str(error))
+            else:
+                st.image(image, caption="Your uploaded image", use_container_width=True)
+        else:
+            st.session_state.pop("image_id", None)
+            st.session_state.pop("caption", None)
+            st.caption("Start with a photo of people, animals, or an everyday scene.")
+
+        generate_column, clear_column = st.columns([2, 1])
+        generate = generate_column.button(
+            "Generate Caption", type="primary", disabled=image is None,
+            use_container_width=True,
+        )
+        clear_column.button(
+            "Clear / upload another image", on_click=clear_upload,
+            disabled=uploaded_file is None, use_container_width=True,
         )
 
-        # Preprocess the image for model prediction
-        image = Image.open(uploaded_file)
-        image = image.resize((224, 224))
-        image_array = img_to_array(image)
-        image_array = image_array.reshape((1, image_array.shape[0], image_array.shape[1], image_array.shape[2]))
-        image_array = preprocess_input(image_array)
+    if generate and image is not None:
+        st.session_state.pop("caption", None)
+        with st.spinner("Analyzing image and generating caption..."):
+            try:
+                st.session_state.caption = generate_caption(image)
+            except CaptionGenerationError as error:
+                st.error(str(error))
+            except Exception:
+                LOGGER.exception("Unexpected caption generation failure")
+                st.error("Something went wrong while generating the caption. "
+                         "Please try again or upload another image.")
 
-        # Generate feature vector using the VGG model
-        feature = vgg_model.predict(image_array, verbose=0)
-
-        # Generate caption
-        caption = predict_caption(model, feature, tokenizer, max_length)
-
-        # Display the generated caption
-        st.subheader("Generated Caption:")
-        st.write(caption)
-
-
-# ...
+    if st.session_state.get("caption"):
+        with st.container(border=True):
+            st.subheader("Generated Caption")
+            st.write(st.session_state.caption)
+        st.caption("AI-generated descriptions may miss details or make mistakes.")
 
 
 if __name__ == "__main__":
