@@ -20,7 +20,7 @@ def open_uploaded_image(upload: BinaryIO) -> Image.Image:
 
 def format_caption(caption: str) -> str:
     """Remove sequence markers and format a sentence without rewriting model words."""
-    caption = re.sub(r"startseq|endseq", "", caption, flags=re.IGNORECASE)
+    caption = re.sub(r"\b(?:startseq|endseq)\b", "", caption, flags=re.IGNORECASE)
     caption = " ".join(caption.split()).strip()
     if not caption:
         return ""
