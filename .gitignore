@@ -1,10 +1,16 @@
-.idea/
 __pycache__/
-*.pyc
+*.py[cod]
+
 .venv/
 venv/
+
+.env
 .DS_Store
 
-# Local credentials and environment configuration
-.env
+.idea/
+.vscode/
+
+.pytest_cache/
+.coverage
+
 .streamlit/secrets.toml
