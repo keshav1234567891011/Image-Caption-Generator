@@ -179,13 +179,19 @@ articles or rewrite grammar. Actual results depend on the photo and trained mode
 - Evaluate caption quality on a held-out Flickr8k test set.
 - Explore richer captioning models as a separate, optional extension.
 
-## Credits
+## Credits / Attribution
 
-VisionScribe was adapted and extended from the open-source image-captioning
-implementation supplied with this repository. The original training notebook,
-VGG16 + LSTM architecture, and trained artifacts provide its foundation; this
-version adds a modular inference layer, cached resources, a redesigned interface,
-and clearer deployment documentation.
+VisionScribe builds on an existing open-source image captioning implementation based on a VGG16 encoder and LSTM decoder trained on the Flickr8k dataset.
 
-Acknowledgements to the Flickr8k dataset creators, the VGG researchers, and the
-TensorFlow/Keras and Streamlit communities.
+This repository focuses on extending the original implementation into a cleaner, deployable application by adding:
+
+- Modular inference code
+- Streamlit-based user interface
+- Image upload and preprocessing workflow
+- Cached model/resource loading
+- Error handling and session-state management
+- Automated tests
+- Deployment configuration and project documentation
+
+If you are the original author of the base implementation or know the exact upstream source, please open an issue so the attribution can be made more precise.
+
